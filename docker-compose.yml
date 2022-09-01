@@ -1,0 +1,63 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: sammy
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: crypto
+    container_name: crypto-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - crypto
+
+#  bitcoin-core:
+#    image: ruimarinho/bitcoin-core:0.21.1
+#    container_name: market-bitcoind
+#    command:
+#      -printtoconsole
+#      -regtest=1
+
+  db:
+    image: mysql:8.0
+    container_name: crypto-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    tty: true
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+      - /dbdata :/var/lib/mysql
+    networks:
+      - crypto
+
+  nginx:
+    image: nginx:alpine
+    container_name: crypto-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - crypto
+
+  redis:
+    image: redis:5.0
+    container_name: crypto-redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+#    ports:
+#      - 6379:6379
+    restart: always
+    networks:
+      - crypto
+
+networks:
+  crypto:
+    driver: bridge
